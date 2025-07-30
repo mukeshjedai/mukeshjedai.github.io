@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VW Crafter Uphill Clutch Practice</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #e8f0f9; text-align: center; }
+    .road { position: relative; width: 90%; height: 200px; margin: 30px auto; background: #555; border-radius: 5px; transform: rotate(-8deg); overflow: hidden; }
+    .van { position: absolute; width: 120px; height: 60px; background: #ff8800; bottom: 20px; left: 20px; border-radius: 8px; transition: left 0.1s linear; }
+    .wheel { width: 30px; height: 30px; background: #000; border-radius: 50%; position: absolute; bottom: -15px; }
+    .wheel.left { left: 10px; }
+    .wheel.right { right: 10px; }
+    .smoke { display: none; position: absolute; width: 60px; height: 60px; background: rgba(150,150,150,0.7); border-radius: 50%; top: -30px; left: 30px; animation: puff 1s infinite; }
+    @keyframes puff { 0%{opacity:1;transform:scale(1);} 100%{opacity:0;transform:scale(1.8);} }
+
+    .rpm { margin: 15px; font-weight: bold; font-size: 18px; }
+    .alert { color: red; font-weight: bold; margin: 10px; }
+    .safe { color: green; }
+    .status { font-size: 18px; font-weight: bold; margin-top: 5px; }
+
+    .controls { margin: 20px auto; width: 320px; text-align: left; }
+    .slider-container { margin: 20px 0; }
+    .label { display: inline-block; width: 100px; font-weight: bold; }
+    input[type=range] { width: 180px; }
+
+    .heat-container { margin-top: 20px; }
+    .heat-label { font-weight: bold; }
+    .heat-bar { width: 300px; height: 20px; background: #ddd; border-radius: 5px; margin: 5px auto; overflow: hidden; }
+    .heat-fill { width: 0%; height: 100%; background: red; transition: width 0.1s; }
+  </style>
+</head>
+<body>
+  <h1>VW Crafter Uphill Clutch Practice (Advanced Scenarios)</h1>
+
+  <div class="road">
+    <div class="van">
+      <div class="wheel left"></div>
+      <div class="wheel right"></div>
+      <div class="smoke" id="smoke"></div>
+    </div>
+  </div>
+
+  <div class="rpm">RPM: <span id="rpm">800</span> <span id="status" class="safe">IDLE</span></div>
+  <div id="alert" class="alert"></div>
+
+  <div class="heat-container">
+    <div class="heat-label">Clutch Heat</div>
+    <div class="heat-bar"><div class="heat-fill" id="heatFill"></div></div>
+  </div>
+
+  <div class="controls">
+    <div class="slider-container">
+      <span class="label">Clutch</span>
+      <input type="range" id="clutch" min="0" max="100" value="100">
+    </div>
+    <div class="slider-container">
+      <span class="label">Brake</span>
+      <input type="range" id="brake" min="0" max="100" value="100">
+    </div>
+    <div class="slider-container">
+      <span class="label">Accelerator</span>
+      <input type="range" id="gas" min="0" max="100" value="0">
+    </div>
+  </div>
+
+  <script>
+    const van = document.querySelector(".van");
+    const smoke = document.getElementById("smoke");
+    const rpmEl = document.getElementById("rpm");
+    const statusEl = document.getElementById("status");
+    const alertEl = document.getElementById("alert");
+    const heatFill = document.getElementById("heatFill");
+
+    const clutchSlider = document.getElementById("clutch");
+    const brakeSlider = document.getElementById("brake");
+    const gasSlider = document.getElementById("gas");
+
+    let vanPos = 20;
+    let clutchHeat = 0;
+    let engineStalled = false;
+
+    setInterval(() => {
+      const clutch = parseInt(clutchSlider.value);  
+      const brake = parseInt(brakeSlider.value);
+      const gas = parseInt(gasSlider.value);
+
+      if (engineStalled) {
+        statusEl.textContent = "ENGINE STALLED!";
+        statusEl.className = "alert";
+        alertEl.textContent = "Restart simulation!";
+        return;
+      }
+
+      // RPM calculation
+      let rpm = 800 + (gas * 15);
+      if (clutch < 50 && gas > 20) rpm += 300; // clutch slip
+      if (rpm > 3000) rpm = 3000;
+      rpmEl.textContent = rpm.toFixed(0);
+
+      const clutchReleased = clutch > 50;
+
+      // Heat management (riding/slipping)
+      if (clutch <= 50 && gas > 40) {
+        clutchHeat += 2; // slipping increases heat quickly
+      } else if (clutch <= 50 && gas < 10 && brake < 50) {
+        clutchHeat += 1; // riding the clutch without gas
+      } else {
+        clutchHeat -= 1; // cool down
+      }
+      clutchHeat = Math.max(0, Math.min(100, clutchHeat));
+      heatFill.style.width = clutchHeat + "%";
+
+      // Overheated clutch
+      if (clutchHeat >= 100) {
+        statusEl.textContent = "CLUTCH BURNED!";
+        statusEl.className = "alert";
+        alertEl.textContent = "⚠ Clutch overheated! Replace it!";
+        smoke.style.display = "block";
+        return;
+      } else {
+        smoke.style.display = "none";
+      }
+
+      // Movement logic
+      let alertMsg = "";
+      if (brake > 50) {
+        statusEl.textContent = "HOLDING (Brake)";
+        statusEl.className = "safe";
+      } else {
+        if (clutchReleased && gas > 20) {
+          vanPos += 3;
+          statusEl.textContent = "MOVING UPHILL";
+          statusEl.className = "safe";
+        } else if (clutchReleased && gas <= 20) {
+          vanPos -= 2;
+          statusEl.textContent = "ROLLING BACK!";
+          statusEl.className = "alert";
+
+          // Stall check: clutch released and gas < 10 at low rpm
+          if (rpm < 900) {
+            engineStalled = true;
+          }
+        }
+      }
+
+      // Warnings
+      if (clutch < 50 && gas > 50 && rpm > 1800) {
+        alertMsg = "⚠ Slipping the clutch too hard! Release sooner.";
+      } else if (clutch <= 50 && gas <= 10 && brake < 50) {
+        alertMsg = "⚠ Riding the clutch! Use brake or release clutch.";
+      }
+
+      alertEl.textContent = alertMsg;
+
+      // Clamp van position
+      if (vanPos < 0) vanPos = 0;
+      if (vanPos > 500) vanPos = 500;
+      van.style.left = vanPos + "px";
+    }, 100);
+  </script>
+</body>
+</html>
