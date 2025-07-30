@@ -1,0 +1,76 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Checklist</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        button {
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dynamic Checklist Generator</h1>
+
+    <textarea id="inputText" placeholder="Paste your lines here..." rows="5" style="width: 100%;"></textarea>
+    <br><br>
+    <button onclick="generateChecklist()">Generate Checklist</button>
+
+    <table id="checklistTable">
+        <thead>
+            <tr>
+                <th>Check</th>
+                <th>Sentence</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Generated rows will appear here -->
+        </tbody>
+    </table>
+
+    <script>
+        function generateChecklist() {
+            const inputText = document.getElementById("inputText").value;
+            const lines = inputText.split("\n").filter(line => line.trim() !== "");
+            const tableBody = document.getElementById("checklistTable").querySelector("tbody");
+            tableBody.innerHTML = ""; // Clear previous entries
+
+            lines.forEach(line => {
+                for (let i = 0; i < 100; i++) {
+                    const row = document.createElement("tr");
+
+                    const checkCell = document.createElement("td");
+                    const checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    checkCell.appendChild(checkbox);
+                    row.appendChild(checkCell);
+
+                    const textCell = document.createElement("td");
+                    textCell.textContent = line;
+                    row.appendChild(textCell);
+
+                    tableBody.appendChild(row);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
